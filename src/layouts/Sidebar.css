@@ -1,0 +1,10 @@
+.MuiDrawer-paper {
+    width: 240px;
+    box-sizing: border-box;
+    padding: 10px; /* Add padding to create space inside the sidebar */
+  }
+  
+  .sidebar {
+    padding: 20px; /* Adjust the padding around the sidebar */
+  }
+  
