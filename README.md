@@ -40,9 +40,9 @@ This project is a comprehensive dashboard for managing and monitoring vending ma
 3. Set up environment variables:
 Create a .env file in the root directory and add your AWS credentials:
     ```bash
-    REACT_APP_AWS_ACCESS_KEY_ID=your_access_key_id
-    REACT_APP_AWS_SECRET_ACCESS_KEY=your_secret_access_key
-    REACT_APP_AWS_REGION=your_aws_region
+    REACT_APP_AWS_ACCESS_KEY_ID=access_key_id
+    REACT_APP_AWS_SECRET_ACCESS_KEY=secret_access_key
+    REACT_APP_AWS_REGION=aws_region
 
 4. Run the application:
     ```bash
