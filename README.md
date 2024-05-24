@@ -2,7 +2,8 @@
 
 ## Overview
 This project is a comprehensive dashboard for managing and monitoring vending machine sales and machine status. It includes features like revenue tracking, sales analysis, and machine health monitoring. The dashboard provides a user-friendly interface with various charts and cards to display key metrics and data points.
-
+###Time Taken To Implement This:
++10 hours 
 ## Features
 - **Sales Dashboard**: Displays revenue and sales data for different products over various time periods.
 - **Machine Status Monitoring**: Shows the current status of the vending machine, including temperature and voltage trends.
