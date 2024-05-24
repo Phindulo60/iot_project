@@ -27,8 +27,8 @@ This project is a comprehensive dashboard for managing and monitoring vending ma
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/vending-machine-dashboard.git
-   cd vending-machine-dashboard
+   git clone https://github.com/Phindulo60/iot_project.git
+   cd iot_project
 
 2. Install dependencies:
    ```bash
@@ -48,31 +48,6 @@ Create a .env file in the root directory and add your AWS credentials:
    npm start
    # or
    yarn start
-
-##Project Structure
-vending-machine-dashboard/
-├── public/
-├── src/
-│   ├── components/
-│   │   ├── Custom/
-│   │   │   ├── CustomCard.js
-│   │   │   ├── CustomChartCard.js
-│   │   ├── dashboard/
-│   │   │   ├── Dashboard.js
-│   │   │   ├── SalesDashboard.js
-│   │   ├── sidebar/
-│   │   │   ├── Sidebar.js
-│   │   ├── Tables/
-│   │   │   ├── VendEventsTable.js
-│   │   │   ├── StatusTable.js
-│   ├── database/
-│   │   ├── timestreamClient.js
-│   ├── utils/
-│   │   ├── calculatePercentageChange.js
-│   ├── App.js
-│   ├── index.js
-├── .env
-├── README.md
 
 
 ## Components
