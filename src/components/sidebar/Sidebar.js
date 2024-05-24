@@ -1,7 +1,7 @@
 import React from 'react';
 import { Drawer, List, ListItem, ListItemText, Divider, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
-import '../layouts/Sidebar.css';
+import '../../layouts/Sidebar.css';
 
 const Sidebar = () => {
   return (
@@ -14,6 +14,11 @@ const Sidebar = () => {
         '& .MuiDrawer-paper': {
           width: 240,
           boxSizing: 'border-box',
+          marginLeft: '20px',
+          marginTop: '20px',
+          marginBottom: '20px',
+          borderRadius: '15px',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
         },
       }}
       className="sidebar"
@@ -25,16 +30,10 @@ const Sidebar = () => {
         <Divider />
         <List>
           <ListItem button component={Link} to="/">
-            <ListItemText primary="Main Dashboard" />
+            <ListItemText primary="Machine Dashboard" />
           </ListItem>
-          <ListItem button component={Link} to="/ambient-temperature">
-            <ListItemText primary="Ambient Temperature" />
-          </ListItem>
-          <ListItem button component={Link} to="/exhaust-temperature">
-            <ListItemText primary="Exhaust Temperature" />
-          </ListItem>
-          <ListItem button component={Link} to="/dc-voltage">
-            <ListItemText primary="DC Voltage" />
+          <ListItem button component={Link} to="/sales-dashboard">
+            <ListItemText primary="Sales Dashboard" />
           </ListItem>
         </List>
       </div>

@@ -9,29 +9,15 @@ const client = new TimestreamQueryClient({
 });
 
 
-const historicalDataQuery = `
-  SELECT * FROM "everest"."machineStatus"
-  WHERE time > ago(30d)
+// Query to fetch all vend events
+const vendEventsQuery = `
+  SELECT time, product, paymentType, measure_value::bigint AS price
+  FROM "everest"."vendEvents"
+  WHERE measure_name = 'price'
   ORDER BY time DESC
+  LIMIT 100
 `;
 
-// Query to fetch anomalies in temperature
-const temperatureAnomaliesQuery = `
-  SELECT * FROM "everest"."machineStatus"
-  WHERE measure_name IN ('ambient', 'exhaust')
-  AND "measure_value::double" > 50
-  AND time > ago(30d)
-  ORDER BY time DESC
-`;
-
-// Query to fetch voltage fluctuations
-const voltageFluctuationsQuery = `
-  SELECT * FROM "everest"."machineStatus"
-  WHERE measure_name = 'DC'
-  AND ABS("measure_value::double" - LAG("measure_value::double") OVER (ORDER BY time)) > 5
-  AND time > ago(30d)
-  ORDER BY time DESC
-`;
 
 // Query to fetch machine status data
 const machineStatusQuery = `
@@ -103,15 +89,136 @@ const temperatureSalesCorrelationQuery = `
   GROUP BY t1.measure_name
 `;
 
-// Query to fetch frequent customers
-const frequentCustomersQuery = `
-  SELECT customer, COUNT(*) AS count
+
+const revenueLastHourQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time > ago(1h)
+  AND measure_name = 'price'
+`;
+
+const revenueLastDayQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
   FROM "everest"."vendEvents"
   WHERE time > ago(1d)
-  GROUP BY customer
-  ORDER BY count DESC
-  LIMIT 10
+  AND measure_name = 'price'
 `;
+
+const revenueLastMonthQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time > ago(30d)
+  AND measure_name = 'price'
+`;
+
+const revenueLastTwoMonthsQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time > ago(60d)
+  AND measure_name = 'price'
+`;
+
+const revenueLastThreeMonthsQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time > ago(90d)
+  AND measure_name = 'price'
+`;
+
+const revenueLastSixMonthsQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time > ago(180d)
+  AND measure_name = 'price'
+`;
+
+// Query to fetch revenue for a specific date
+const revenueByDateQuery = (date) => `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE measure_name = 'price'
+  AND time >= '${date}T00:00:00Z'
+  AND time <= '${date}T23:59:59Z'
+`;
+
+const previousRevenueLastHourQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time BETWEEN ago(2h) AND ago(1h)
+  AND measure_name = 'price'
+`;
+
+const previousRevenueLastDayQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time BETWEEN ago(2d) AND ago(1d)
+  AND measure_name = 'price'
+`;
+
+const previousRevenueLastMonthQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time BETWEEN ago(60d) AND ago(30d)
+  AND measure_name = 'price'
+`;
+
+const previousRevenueLastTwoMonthsQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time BETWEEN ago(120d) AND ago(60d)
+  AND measure_name = 'price'
+`;
+
+const previousRevenueLastThreeMonthsQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time BETWEEN ago(180d) AND ago(90d)
+  AND measure_name = 'price'
+`;
+
+const previousRevenueLastSixMonthsQuery = `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time BETWEEN ago(360d) AND ago(180d)
+  AND measure_name = 'price'
+`;
+
+// Query templates to fetch revenue for specific products over specified periods
+const productRevenueQuery = (product, period) => `
+  SELECT SUM("measure_value::bigint") AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time > ago(${period})
+  AND measure_name = 'price'
+  AND product = '${product}'
+`;
+
+const productSalesQuery = (product, period) => `
+SELECT COUNT(*) AS totalSales
+FROM "everest"."vendEvents"
+WHERE time > ago(${period})
+AND product = '${product}'
+`;
+
+const paymentTypeSalesQuery = (paymentType, period) => `
+  SELECT COUNT(*) AS totalSales
+  FROM "everest"."vendEvents"
+  WHERE time > ago(${period})
+  AND paymentType = '${paymentType}'
+`;
+
+const getProductRevenue = async (product, period) => {
+  const query = productRevenueQuery(product, period);
+  return runQuery(query);
+};
+const getProductSales = async (product, period) => {
+  const query = productSalesQuery(product, period);
+  return runQuery(query);
+};
+
+const getPaymentTypeSales = async (paymentType, period) => {
+  const query = paymentTypeSalesQuery(paymentType, period);
+  return runQuery(query);
+};
 
 export const runQuery = async (query) => {
   const params = {
@@ -121,7 +228,7 @@ export const runQuery = async (query) => {
   try {
     const command = new QueryCommand(params);
     const data = await client.send(command);
-    console.log(data);
+    // console.log(data);
     return data;
   } catch (err) {
     console.error("Error querying Timestream:", err);
@@ -129,6 +236,7 @@ export const runQuery = async (query) => {
 };
 
 export const getMachineStatusData = () => runQuery(machineStatusQuery);
+export const getVendEventsData = () => runQuery(vendEventsQuery);
 export const getAggregateSalesData = () => runQuery(aggregateSalesQuery);
 export const getSalesByPaymentTypeData = () => runQuery(salesByPaymentTypeQuery);
 export const getFreeVendData = () => runQuery(freeVendQuery);
@@ -136,7 +244,29 @@ export const getTotalVendsData = () => runQuery(totalVendsQuery);
 export const getAverageSalePriceData = () => runQuery(averageSalePriceQuery);
 export const getSalesComparisonData = () => runQuery(salesComparisonQuery);
 export const getTemperatureSalesCorrelationData = () => runQuery(temperatureSalesCorrelationQuery);
-export const getFrequentCustomersData = () => runQuery(frequentCustomersQuery);
-export const getHistoricalData = () => runQuery(historicalDataQuery);
-export const getTemperatureAnomalies = () => runQuery(temperatureAnomaliesQuery);
-export const getVoltageFluctuations = () => runQuery(voltageFluctuationsQuery);
+export const getRevenueData = (timePeriodQuery) => runQuery(timePeriodQuery);
+export const getRevenueLastHour = () => getRevenueData(revenueLastHourQuery);
+export const getRevenueLastDay = () => getRevenueData(revenueLastDayQuery);
+export const getRevenueLastMonth = () => getRevenueData(revenueLastMonthQuery);
+export const getRevenueLastTwoMonths = () => getRevenueData(revenueLastTwoMonthsQuery);
+export const getRevenueLastThreeMonths = () => getRevenueData(revenueLastThreeMonthsQuery);
+export const getRevenueLastSixMonths = () => getRevenueData(revenueLastSixMonthsQuery);
+export const getRevenueByDate = (date) => runQuery(revenueByDateQuery(date));
+export const getPreviousRevenueLastHour = () => getRevenueData(previousRevenueLastHourQuery);
+export const getPreviousRevenueLastDay = () => getRevenueData(previousRevenueLastDayQuery);
+export const getPreviousRevenueLastMonth = () => getRevenueData(previousRevenueLastMonthQuery);
+export const getPreviousRevenueLastTwoMonths = () => getRevenueData(previousRevenueLastTwoMonthsQuery);
+export const getPreviousRevenueLastThreeMonths = () => getRevenueData(previousRevenueLastThreeMonthsQuery);
+export const getPreviousRevenueLastSixMonths = () => getRevenueData(previousRevenueLastSixMonthsQuery);
+export const getRevenueLastDayForProduct = (product) => getProductRevenue(product, '1d');
+export const getRevenueLastWeekForProduct = (product) => getProductRevenue(product, '7d');
+export const getRevenueLastThreeMonthsForProduct = (product) => getProductRevenue(product, '90d');
+export const getSalesLastDayForProduct = (product) => getProductSales(product, '1d');
+export const getSalesLastWeekForProduct = (product) => getProductSales(product, '7d');
+export const getSalesLastThreeMonthsForProduct = (product) => getProductSales(product, '90d');
+export const getCashSalesLastDay = () => getPaymentTypeSales('CASH', '1d');
+export const getCashSalesLastWeek = () => getPaymentTypeSales('CASH', '7d');
+export const getCashSalesLastThreeMonths = () => getPaymentTypeSales('CASH', '90d');
+export const getCCSalesLastDay = () => getPaymentTypeSales('CC', '1d');
+export const getCCSalesLastWeek = () => getPaymentTypeSales('CC', '7d');
+export const getCCSalesLastThreeMonths = () => getPaymentTypeSales('CC', '90d');

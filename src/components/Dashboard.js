@@ -1,22 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Grid } from '@mui/material';
+import { Grid, LinearProgress } from '@mui/material';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { getMachineStatusData, getAggregateSalesData, getSalesByPaymentTypeData, getFreeVendData, getTotalVendsData, getAverageSalePriceData, getSalesComparisonData, getTemperatureSalesCorrelationData, getFrequentCustomersData, getHistoricalData, getTemperatureAnomalies, getVoltageFluctuations } from '../database/timestreamClient';
-import TotalRevenue from './TotalRevenue';
-import ProductSalesDistribution from './ProductSalesDistribution';
-import SalesByPaymentType from './SalesByPaymentType';
-import FreeVendEvents from './FreeVendEvents';
-import Sidebar from './Sidebar';
-import CustomCard from './CustomCard';
-import CustomChartCard from './CustomChartCard';
-import StatusTable from './StatusTable';
-import MachineHealth from './MachineHealth';
-import TemperatureAnomalies from './TemperatureAnomalies';
-import VoltageFluctuations from './VoltageFluctuations';
+import { getMachineStatusData, getAggregateSalesData, getSalesByPaymentTypeData, getFreeVendData, getTotalVendsData, getAverageSalePriceData, getSalesComparisonData, getTemperatureSalesCorrelationData, getVendEventsData } from '../database/timestreamClient';
+import Sidebar from './sidebar/Sidebar';
+import CustomCard from './Custom/CustomCard';
+import CustomChartCard from './Custom/CustomChartCard';
+import StatusTable from './Tables/StatusTable';
+import MachineHealth from './dashboard/MachineHealth';
+import SalesDashboard from './SalesDashboard';
 import '../layouts/Dashboard.css';
 import ThermostatIcon from '@mui/icons-material/Thermostat';
-import LocalAtmIcon from '@mui/icons-material/LocalAtm';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers';
 
 const Dashboard = () => {
   const [statusMessages, setStatusMessages] = useState([]);
@@ -29,10 +25,9 @@ const Dashboard = () => {
   const [averageSalePrice, setAverageSalePrice] = useState(0);
   const [salesComparison, setSalesComparison] = useState([]);
   const [temperatureSalesCorrelation, setTemperatureSalesCorrelation] = useState([]);
-  const [frequentCustomers, setFrequentCustomers] = useState([]);
-  const [temperatureAnomalies, setTemperatureAnomalies] = useState([]);
-  const [voltageFluctuations, setVoltageFluctuations] = useState([]);
   const [machineHealth, setMachineHealth] = useState({ message: 'Machine health is good.' });
+  const [vendEvents, setVendEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -92,25 +87,16 @@ const Dashboard = () => {
           })));
         }
 
-        const frequentCustomersData = await getFrequentCustomersData();
-        if (frequentCustomersData && frequentCustomersData.Rows) {
-          setFrequentCustomers(frequentCustomersData.Rows.map(row => ({
-            customer: row.Data[0].ScalarValue,
-            count: parseInt(row.Data[1].ScalarValue, 10),
+        const vendEventsData = await getVendEventsData();
+        if (vendEventsData && vendEventsData.Rows) {
+          setVendEvents(vendEventsData.Rows.map(row => ({
+            time: row.Data[0].ScalarValue,
+            product: row.Data[1].ScalarValue,
+            paymentType: row.Data[2].ScalarValue,
+            price: row.Data[3].ScalarValue
           })));
         }
 
-        const temperatureAnomaliesData = await getTemperatureAnomalies();
-        if (temperatureAnomaliesData && temperatureAnomaliesData.Rows) {
-          setTemperatureAnomalies(formatTimestreamData(temperatureAnomaliesData.Rows, temperatureAnomaliesData.ColumnInfo));
-        }
-
-        const voltageFluctuationsData = await getVoltageFluctuations();
-        if (voltageFluctuationsData && voltageFluctuationsData.Rows) {
-          setVoltageFluctuations(formatTimestreamData(voltageFluctuationsData.Rows, voltageFluctuationsData.ColumnInfo));
-        }
-
-        // Simple machine health assessment
         const lastHourData = historicalData.filter(item => new Date(item.time) > Date.now() - 3600 * 1000);
         if (lastHourData.some(item => parseFloat(item['measure_value::double']) > 50)) {
           setMachineHealth({ message: 'Warning: High temperature detected in the last hour!' });
@@ -120,6 +106,8 @@ const Dashboard = () => {
 
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -165,22 +153,41 @@ const Dashboard = () => {
     DC: data.measure_name === 'DC' ? parseFloat(data['measure_value::double']) : null,
   })).filter(data => data.ambient !== null || data.exhaust !== null || data.DC !== null);
 
-  const totalRevenue = aggregateSales.reduce((sum, item) => sum + item.totalSales, 0);
-
   return (
     <Router>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Sidebar />
       <div className="main-content">
         <Routes>
           <Route path="/" element={
             <Grid container spacing={2} padding={2}>
               <Grid item xs={12}>
-                <Grid container spacing={2}>
-                  <CustomCard icon={<ThermostatIcon />} title="Current Ambient Temperature" value={`${latestStatus.ambient}°C`} subText="+1% than last week" sx={{ width: '100%', height: 'auto' }} />
-                  <CustomCard icon={<ThermostatIcon />} title="Current Exhaust Temperature" value={`${latestStatus.exhaust}°C`} subText="+3% than last week" sx={{ width: '100%', height: 'auto' }} />
-                  <CustomCard icon={<BatteryChargingFullIcon />} title="Current DC Voltage" value={`${latestStatus.DC}V`} subText="+1% than last week" sx={{ width: '100%', height: 'auto' }} />
-                  <CustomCard icon={<LocalAtmIcon />} title="Total Revenue" value={`$${totalRevenue}`} subText="Updated today" sx={{ width: '100%', height: 'auto' }} />
+                <Grid container spacing={3}>
+                  <CustomCard
+                    icon={<ThermostatIcon />}
+                    title="Current Ambient Temperature"
+                    value={loading ? <LinearProgress /> : `${latestStatus.ambient}°C`}
+                    subText="+1% than last week"
+                    sx={{ width: '350px', height: '135px' }}
+                  />
+                  <CustomCard
+                    icon={<ThermostatIcon />}
+                    title="Current Exhaust Temperature"
+                    value={loading ? <LinearProgress /> : `${latestStatus.exhaust}°C`}
+                    subText="+3% than last week"
+                    sx={{ width: '350px', height: '135px' }}
+                  />
+                  <CustomCard
+                    icon={<BatteryChargingFullIcon />}
+                    title="Current Voltage"
+                    value={loading ? <LinearProgress /> : `${latestStatus.DC}V`}
+                    subText="+1% than last week"
+                    sx={{ width: '350px', height: '135px' }}
+                  />
                 </Grid>
+              </Grid>
+              <Grid item xs={12}>
+                <MachineHealth healthData={machineHealth} />
               </Grid>
               <Grid item xs={12} md={4}>
                 <CustomChartCard title="Ambient Temperature Trends" data={temperatureData} dataKey="ambient" stroke="#8884d8" additionalInfo="Last update: a few seconds ago" sx={{ width: '100%', height: 'auto' }} />
@@ -189,48 +196,24 @@ const Dashboard = () => {
                 <CustomChartCard title="Exhaust Temperature Trends" data={temperatureData} dataKey="exhaust" stroke="#82ca9d" additionalInfo="Last update: a few seconds ago" sx={{ width: '100%', height: 'auto' }} />
               </Grid>
               <Grid item xs={12} md={4}>
-                <CustomChartCard title="DC Voltage Trends" data={temperatureData} dataKey="DC" stroke="#8884d8" additionalInfo="Last update: a few seconds ago" sx={{ width: '100%', height: 'auto' }} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TotalRevenue totalRevenue={totalRevenue} revenueByProduct={aggregateSales} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <ProductSalesDistribution data={aggregateSales.map(item => ({ name: item.product, value: item.totalSales }))} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <SalesByPaymentType data={salesByPaymentType} />
-              </Grid>
-              <Grid item xs={12}>
-                <FreeVendEvents freeVendCount={freeVendCount} totalVendCount={totalVendCount} />
+                <CustomChartCard title="Voltage Trends" data={temperatureData} dataKey="DC" stroke="#8884d8" additionalInfo="Last update: a few seconds ago" sx={{ width: '100%', height: 'auto' }} />
               </Grid>
               <Grid item xs={12}>
                 <StatusTable data={historicalData} />
               </Grid>
-              <Grid item xs={12}>
-                <CustomCard title="Average Sale Price" value={`$${averageSalePrice}`} subText="Updated today" sx={{ width: '100%', height: 'auto' }} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <CustomChartCard title="Sales Comparison" data={salesComparison} dataKey="sales" stroke="#82ca9d" additionalInfo="Comparison with previous periods" sx={{ width: '100%', height: 'auto' }} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <CustomChartCard title="Temperature vs Sales Correlation" data={temperatureSalesCorrelation} dataKey="sales" stroke="#8884d8" additionalInfo="Correlation analysis" sx={{ width: '100%', height: 'auto' }} />
-              </Grid>
-              <Grid item xs={12}>
-                <CustomChartCard title="Frequent Customers" data={frequentCustomers} dataKey="count" stroke="#8884d8" additionalInfo="Frequent customer analysis" sx={{ width: '100%', height: 'auto' }} />
-              </Grid>
-              <Grid item xs={12}>
-                <MachineHealth healthData={machineHealth} />
-              </Grid>
-              <Grid item xs={12}>
-                <TemperatureAnomalies anomalies={temperatureAnomalies} />
-              </Grid>
-              <Grid item xs={12}>
-                <VoltageFluctuations fluctuations={voltageFluctuations} />
-              </Grid>
             </Grid>
+          } />
+          <Route path="/sales-dashboard" element={
+            <SalesDashboard
+              averageSalePrice={averageSalePrice}
+              salesComparison={salesComparison}
+              temperatureSalesCorrelation={temperatureSalesCorrelation}
+              vendEvents={vendEvents}
+            />
           } />
         </Routes>
       </div>
+      </LocalizationProvider>
     </Router>
   );
 };

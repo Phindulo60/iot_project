@@ -21,3 +21,17 @@ ReactDOM.render(
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
+
+// import { LocalizationProvider } from '@mui/x-date-pickers';
+// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+
+// ReactDOM.render(
+//   <React.StrictMode>
+//     <LocalizationProvider dateAdapter={AdapterDateFns}>
+//       <App />
+//     </LocalizationProvider>
+//   </React.StrictMode>,
+//   document.getElementById('root')
+// );
+
+// reportWebVitals();
